@@ -2,6 +2,16 @@ var { expect } = require("chai");
 var { Shop, Item } = require("../src/gilded_rose.js");
 
 
+const testCase = (name, sellIn, quality, expectSellIn, expectedQality) => {
+  const shop = new Shop([
+    new Item(name, sellIn, quality)
+  ]);
+  const results = shop.updateQuality();
+
+  expect(results[0].sellIn).to.equal(expectSellIn);
+  expect(results[0].quality).to.equal(expectedQality);
+}
+
 describe("Gilded Rose", function () {
   it('Should exists', function() {
     expect(Shop).to.exist;
@@ -27,60 +37,52 @@ describe("Gilded Rose", function () {
     });
   })
 
-  describe('WTF those tests give this resut', function() {
-    const items = [
-      [new Item('foo', 1, 0), 0],
-      [new Item('Sulfuras, Hand of Ragnaros', 1, 0), 1]
-    ];
+  describe('updateQuality', function() {
+    describe('Default behavior', function() {
+      it('should decay sellIn and quality', function() {
+        testCase('foo', 5, 1, 4, 0);
+      });
 
-    items.forEach(([item, expected]) => {
-      it(`should increase decrease sellIn by 1 for ${item.name}`, function () {
-        let shop= new Shop([item]);
-        shop.updateQuality();
-        expect(item.sellIn).to.equal(expected);
+      it('should decay quality twice fast if lower than 0', function() {
+        testCase('foo', 1, 10, 0, 9);
+        testCase('foo', 0, 10, -1, 8);
       });
     });
-  });
 
-  describe('Why don\'t they haven write any docs?', function() {
-    const items = [
-      [new Item('foo', 0, 1), 0],
-      [new Item('foo', -1, 1), 0],
-      [new Item('foo', -1, 0), 0],
-      [new Item('foo', -1, 2), 0],
-      [new Item('foo', 1, 1), 0],
-      [new Item('foo', 1, 2), 1],
-      [new Item('foo', 1, 0), 0],
-      [new Item('foo', -2, 10), 8],
-      [new Item('Aged Brie', -1, 0), 2],
-      [new Item('Aged Brie', -1, 50), 50],
-      [new Item('Aged Brie', 1, 0), 1],
-      [new Item('Aged Brie', 1, 50), 50],
-      [new Item('Aged Brie', 0, 49), 50],
-      [new Item('Sulfuras, Hand of Ragnaros', -1, 0), 0],
-      [new Item('Sulfuras, Hand of Ragnaros', -1, 1), 1],
-      [new Item('Sulfuras, Hand of Ragnaros', 1, 0), 0],
-      [new Item('Sulfuras, Hand of Ragnaros', 1, 1), 1],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', -1, 2), 0],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 1, 0), 3],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 5, 49), 50],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 6, 49), 50],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 5, 47), 50],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 6, 47), 49],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 11, 49), 50],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 11, 48), 49],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 12, 49), 50],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 13, 49), 50],
-      [new Item('Backstage passes to a TAFKAL80ETC concert', 1, 0), 3]
-    ];
-
-    items.forEach(([item, expected]) => {
-      it(`If I find who have write this code I will ****. Let's test for ${item.name}`, function () {
-        let shop= new Shop([item]);
-        shop.updateQuality();
-        console.log(item.quality, expected)
-        expect(item.quality).to.equal(expected);
-      });
+    describe('Special case for Sulfuras, Hand of Ragnaros', function() {
+      it('sellIn or quality must never change', function() {
+        testCase('Sulfuras, Hand of Ragnaros', 1, 1, 1, 1);
+        testCase('Sulfuras, Hand of Ragnaros', 10, 10, 10, 10);
+        testCase('Sulfuras, Hand of Ragnaros', 50, 50, 50, 50);
+      })
     });
+
+    describe('Special case for Aged Brie', function() {
+      it('quality should increase', function() {
+        testCase('Aged Brie', 1, 0, 0, 1);
+      })
+
+      it('quality should increase twice fast if sellIn is lower than 0', function() {
+        testCase('Aged Brie', 0, 0, -1, 2);
+      });
+    })
+
+    describe('Special case for Backstage passes to a TAFKAL80ETC concert', function() {
+      it('quality should increase', function() {
+        testCase('Backstage passes to a TAFKAL80ETC concert', 30, 0, 29, 1);
+      });
+      it('quality should increase twice fast if sellIn is lower than 10', function() {
+        testCase('Backstage passes to a TAFKAL80ETC concert', 11, 0, 10, 1);
+        testCase('Backstage passes to a TAFKAL80ETC concert', 10, 0, 9, 2);
+      });
+      it('quality should increase three times fast if sellIn is lower than 5', function() {
+        testCase('Backstage passes to a TAFKAL80ETC concert', 6, 0, 5, 2);
+        testCase('Backstage passes to a TAFKAL80ETC concert', 5, 0, 4, 3);
+      });
+      it('quality should drop to 0 if sellIn is lower than 0', function() {
+        testCase('Backstage passes to a TAFKAL80ETC concert', 1, 10, 0, 13);
+        testCase('Backstage passes to a TAFKAL80ETC concert', 0, 10, -1, 0);
+      });
+    })
   });
 });
